@@ -1,5 +1,7 @@
 # tauri-motrix
 
+[简体中文](README.zh-CN.md) | [English](README.md)
+
 ## yzxq1 Fork Changes — Multiple aria2 RPC Backends
 
 This public fork adds a tabbed aria2 RPC backend manager. The RPC Settings dialog keeps the bundled local aria2 backend and lets you add, name, edit, test, delete, and switch between multiple external aria2 RPC profiles. Switching is explicit and reconnects the client only after the target endpoint passes validation and an RPC probe.
