@@ -48,8 +48,13 @@ jobs:
       - run: pnpm exec jest --runInBand
       - name: Build ARM64 DMG without updater signing
         run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config '{"version":"0.2.5-backend.1","bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"-"}}}'
-      - name: Verify application signature
-        run: codesign --verify --deep --strict 'target/aarch64-apple-darwin/release/bundle/macos/Tauri Motrix.app'
+      - name: Verify application signature inside DMG
+        run: |
+          dmg=(target/aarch64-apple-darwin/release/bundle/dmg/*.dmg)
+          mountpoint=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mountpoint" "${dmg[0]}"
+          trap 'hdiutil detach "$mountpoint"' EXIT
+          codesign --verify --deep --strict "$mountpoint/Tauri Motrix.app"
       - uses: actions/upload-artifact@v4
         with:
           name: tauri-motrix-backend-macos-arm64
