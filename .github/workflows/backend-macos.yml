@@ -47,7 +47,9 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec jest --runInBand
       - name: Build ARM64 DMG without updater signing
-        run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config '{"version":"0.2.5-backend.1","bundle":{"createUpdaterArtifacts":false}}'
+        run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config '{"version":"0.2.5-backend.1","bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"-"}}}'
+      - name: Verify application signature
+        run: codesign --verify --deep --strict 'target/aarch64-apple-darwin/release/bundle/macos/Tauri Motrix.app'
       - uses: actions/upload-artifact@v4
         with:
           name: tauri-motrix-backend-macos-arm64
