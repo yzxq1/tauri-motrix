@@ -10,8 +10,7 @@
   "copyright": "Copyright© Taoister39",
   "license": "GPL-3.0-only",
   "author": {
-    "name": "Taoister39",
-    "email": "Qiacrkeng@gmail.com"
+    "name": "Taoister39"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
