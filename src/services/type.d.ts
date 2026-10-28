@@ -144,6 +144,10 @@ interface Aria2Config {
 
 interface MotrixConfig {
   aria2_engine: string;
+  aria2_backend: "embedded" | "external";
+  aria2_server: string;
+  aria2_port: number;
+  aria2_secret: string;
   http_engine: "aria2c" | "vortex";
   vortex_max_tasks: number;
   vortex_connections: number;

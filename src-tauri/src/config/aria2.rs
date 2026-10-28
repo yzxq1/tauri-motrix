@@ -3,9 +3,12 @@ use std::{collections::HashMap, fmt, fs::read_to_string};
 use anyhow::{bail, Result};
 use serde::Serialize;
 
-use crate::utils::{
-    dirs::{self, aria2_download_session_path, aria2_path, path_to_str, user_downloads_dir},
-    help::simple_save_file,
+use crate::{
+    config::Config,
+    utils::{
+        dirs::{self, aria2_download_session_path, aria2_path, path_to_str, user_downloads_dir},
+        help::simple_save_file,
+    },
 };
 
 #[derive(Debug, Default, Clone, Serialize)]
@@ -105,8 +108,21 @@ impl IAria2Temp {
     }
 
     pub fn get_client_info(&self) -> Aria2Info {
-        let config = &self.0;
+        let motrix = Config::motrix().data();
+        if motrix.aria2_backend.as_deref() == Some("external") {
+            let server = motrix
+                .aria2_server
+                .clone()
+                .unwrap_or_else(|| "127.0.0.1".into());
+            let port = motrix.aria2_port.unwrap_or(16801);
+            return Aria2Info {
+                port,
+                server: format!("{}:{}", server, port),
+                secret: motrix.aria2_secret.clone().unwrap_or_default(),
+            };
+        }
 
+        let config = &self.0;
         Aria2Info {
             port: Self::guard_port(config),
             server: Self::guard_server(config),

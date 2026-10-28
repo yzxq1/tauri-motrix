@@ -13,6 +13,11 @@ use crate::{
 pub struct IMotrix {
     /// aria2c run name for sidecar
     pub aria2_engine: Option<String>,
+    /// `embedded` starts the bundled sidecar; `external` connects to an existing RPC service.
+    pub aria2_backend: Option<String>,
+    pub aria2_server: Option<String>,
+    pub aria2_port: Option<u16>,
+    pub aria2_secret: Option<String>,
     pub http_engine: Option<String>,
     pub vortex_max_tasks: Option<usize>,
     pub vortex_connections: Option<usize>,
@@ -102,6 +107,10 @@ impl IMotrix {
 
         IMotrix {
             aria2_engine: Some("aria2c".into()),
+            aria2_backend: Some("embedded".into()),
+            aria2_server: Some("127.0.0.1".into()),
+            aria2_port: Some(16801),
+            aria2_secret: Some(String::new()),
             http_engine: Some("aria2c".into()),
             vortex_max_tasks: Some(3),
             vortex_connections: Some(4),
@@ -160,6 +169,10 @@ impl IMotrix {
         patch!(theme_mode);
         patch!(app_log_level);
         patch!(aria2_engine);
+        patch!(aria2_backend);
+        patch!(aria2_server);
+        patch!(aria2_port);
+        patch!(aria2_secret);
         patch!(http_engine);
         patch!(vortex_max_tasks);
         patch!(vortex_connections);

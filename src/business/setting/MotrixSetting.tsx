@@ -1,5 +1,5 @@
-import { MenuItem, Select } from "@mui/material";
-import { useRef } from "react";
+import { Button, MenuItem, Select, Stack, TextField } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SettingItem, SettingList } from "@/client/setting_compose";
@@ -18,6 +18,26 @@ function MotrixSetting() {
   const { t } = useTranslation();
 
   const listenPortsRef = useRef<DialogRef>(null);
+  const [server, setServer] = useState("");
+  const [port, setPort] = useState(16801);
+  const [secret, setSecret] = useState("");
+
+  useEffect(() => {
+    if (motrix) {
+      setServer(motrix.aria2_server ?? "127.0.0.1");
+      setPort(motrix.aria2_port ?? 16801);
+      setSecret(motrix.aria2_secret ?? "");
+    }
+  }, [motrix]);
+
+  const saveExternalBackend = async () => {
+    await patchMotrix({
+      aria2_server: server.trim(),
+      aria2_port: port,
+      aria2_secret: secret,
+    });
+    Notice.success("aria2 backend saved");
+  };
 
   return (
     <SettingList title={t("setting.Motrix")}>
@@ -41,6 +61,53 @@ function MotrixSetting() {
           ))}
         </Select>
       </SettingItem>
+
+      <SettingItem label="aria2 backend">
+        <Select
+          value={motrix?.aria2_backend ?? "embedded"}
+          size="small"
+          sx={{ width: 180, "> div": { py: "7.5px" } }}
+          onChange={async (e) => {
+            await patchMotrix({
+              aria2_backend: e.target.value as MotrixConfig["aria2_backend"],
+            });
+            Notice.success("aria2 backend switched");
+          }}
+        >
+          <MenuItem value="embedded">Bundled / local</MenuItem>
+          <MenuItem value="external">External RPC</MenuItem>
+        </Select>
+      </SettingItem>
+
+      {motrix?.aria2_backend === "external" && (
+        <SettingItem label="External aria2 RPC">
+          <Stack spacing={1} sx={{ width: 220, py: 1 }}>
+            <TextField
+              size="small"
+              label="Host"
+              value={server}
+              onChange={(e) => setServer(e.target.value)}
+            />
+            <TextField
+              size="small"
+              label="Port"
+              type="number"
+              value={port}
+              onChange={(e) => setPort(Number(e.target.value))}
+            />
+            <TextField
+              size="small"
+              label="Secret"
+              type="password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+            />
+            <Button size="small" variant="contained" onClick={saveExternalBackend}>
+              Apply and reconnect
+            </Button>
+          </Stack>
+        </SettingItem>
+      )}
 
       <SettingItem label={t("setting.NewTaskShowDownloading")}>
         <Android12Switch

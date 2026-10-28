@@ -53,9 +53,12 @@ impl CoreManager {
         }
 
         let config_path = aria2_path()?;
+        let external = Config::motrix().data().aria2_backend.as_deref() == Some("external");
 
-        self.ensure_port_available().await?;
-        self.run_core_by_sidecar(&config_path).await?;
+        if !external {
+            self.ensure_port_available().await?;
+            self.run_core_by_sidecar(&config_path).await?;
+        }
         let info = Config::aria2().data().get_client_info();
         if let Err(error) = Self::wait_for_rpc(&info).await {
             let _ = self.kill_core_by_sidecar().await;
@@ -72,9 +75,16 @@ impl CoreManager {
         if let Err(error) = crate::service::vortex::shutdown().await {
             log::error!("Vortex shutdown failed: {error}");
         }
-        // TODO aria2c external control for user
+        // kill_core_by_sidecar only terminates a child owned by this process;
+        // an external backend is never shut down through RPC.
         let _ = self.kill_core_by_sidecar().await;
         *running = false;
+    }
+
+    /// Reconnect after switching between the bundled and external backends.
+    pub async fn reconfigure_backend(&self) -> Result<()> {
+        self.stop_engine().await;
+        self.start_engine().await
     }
 
     /// Save unfinished tasks and restart only the managed aria2 process.
