@@ -268,5 +268,22 @@
     "starting": "正在准备录入快捷键…",
     "saving": "正在保存快捷键…",
     "stopping": "正在恢复全局快捷键操作…"
+  },
+  "backend": {
+    "Title": "aria2 后端",
+    "Embedded": "内置 / 本地",
+    "External": "外部 RPC",
+    "Host": "主机（IPv4、IPv6 或域名）",
+    "Port": "端口",
+    "Path": "RPC 路径",
+    "Secret": "RPC 密钥",
+    "Test": "测试连接",
+    "Apply": "应用并重新连接",
+    "Busy": "正在连接…",
+    "Connected": "连接成功",
+    "Invalid": "请检查主机、端口和 RPC 路径。",
+    "Failed": "连接失败，请检查地址、TLS 和密钥；应用失败时保留原设置。",
+    "RemoteFiles": "不能在本机打开或删除远程文件。",
+    "ManualUpdate": "此 fork 需要手动更新，已禁用上游自动更新。"
   }
 }

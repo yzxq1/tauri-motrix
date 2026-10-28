@@ -2,17 +2,27 @@ import { Aria2Instance, create, EventSubscribeMap } from "@tauri-motrix/aria2";
 
 import { isTest } from "@/constant/environment";
 import { APP_LOG_LEVEL } from "@/constant/log";
+import {
+  assertBackendGeneration,
+  backendGeneration,
+  invalidateBackend,
+  remoteDownloadOptions,
+  setExternalBackend,
+} from "@/services/backend_state";
 import { appLog, getAria2Info } from "@/services/cmd";
 
 let instancePromise: Promise<Aria2Instance> = null!;
 
-const eventSubscribeMap: EventSubscribeMap = {};
+let eventSubscribeMap: EventSubscribeMap = {};
 
 async function getInstancePromise() {
   console.log("aria2", "Initializing instances");
 
   let server = "";
+  const generation = backendGeneration();
   const aria2Info = await getAria2Info();
+  assertBackendGeneration(generation);
+  setExternalBackend(aria2Info.external ?? false);
 
   if (aria2Info.server) {
     server = aria2Info.server;
@@ -22,6 +32,8 @@ async function getInstancePromise() {
 
   const instance = create({
     server,
+    httpUrl: aria2Info.http_url,
+    wsUrl: aria2Info.ws_url,
     secret: aria2Info.secret,
     eventSubscribeMap,
   });
@@ -38,12 +50,33 @@ async function getInstancePromise() {
 
   instance.open();
 
-  return instance;
+  return new Proxy(instance, {
+    get(target, key) {
+      const value = Reflect.get(target, key);
+      if (key === "addListener" || key === "setListener") {
+        return (name: string, callback: (data: unknown) => void) =>
+          value(name, (data: unknown) => {
+            if (generation === backendGeneration()) callback(data);
+          });
+      }
+      if (key !== "call" && key !== "multiCall") return value;
+      return async (...args: unknown[]) => {
+        assertBackendGeneration(generation);
+        const result = await value(...args);
+        assertBackendGeneration(generation);
+        return result;
+      };
+    },
+  });
 }
 
 export function getAria2(force = false) {
   if (!instancePromise || force) {
+    if (force) invalidateBackend();
+    for (const key of Object.keys(eventSubscribeMap))
+      delete eventSubscribeMap[key];
     instancePromise?.then(({ close }) => close()).catch(() => {});
+    eventSubscribeMap = {};
     instancePromise = getInstancePromise();
   }
   return instancePromise;
@@ -170,7 +203,7 @@ export const addTaskApi = async (
   return call<string>(
     "addUri",
     typeof urls === "string" ? [urls] : urls,
-    option,
+    remoteDownloadOptions(option),
   );
 };
 
@@ -179,7 +212,7 @@ export const addTorrentApi = async (
   option: DownloadOption,
 ) => {
   const { call } = await getAria2();
-  return call("addTorrent", torrent, [], option);
+  return call("addTorrent", torrent, [], remoteDownloadOptions(option));
 };
 
 export interface Aria2GlobalStat {

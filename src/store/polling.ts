@@ -27,8 +27,8 @@ export const usePollingStore = create<PollingStore>((set, get) => ({
     const { fetchGlobalStat } = useAria2StateStore.getState();
 
     const timer = setTimeout(() => {
-      fetchTasks();
-      fetchGlobalStat();
+      void fetchTasks().catch(() => {});
+      void Promise.resolve(fetchGlobalStat()).catch(() => {});
       polling();
     }, interval);
     set({ timer });

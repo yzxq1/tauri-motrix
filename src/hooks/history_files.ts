@@ -1,4 +1,5 @@
-import useSWR from "swr";
+import { useEffect, useRef } from "react";
+import useSWR, { useSWRConfig } from "swr";
 
 import type { DownloadHistoryVO } from "@/services/download_history";
 import {
@@ -8,9 +9,10 @@ import {
 
 export function useHistoryFiles(history: DownloadHistoryVO[]) {
   const paths = [...new Set(history.map((item) => item.path))];
+  const key = ["useHistoryFiles", paths] as const;
 
   const { data: files = new Map<string, HistoryFileInspection>() } = useSWR(
-    ["useHistoryFiles", paths],
+    key,
     async ([, paths]) => {
       const results = new Map<string, HistoryFileInspection>();
       for (let offset = 0; offset < paths.length; offset += 128) {
@@ -31,7 +33,19 @@ export function useHistoryFiles(history: DownloadHistoryVO[]) {
       }
       return results;
     },
+    { revalidateOnFocus: false },
   );
+
+  const { mutate } = useSWRConfig();
+  const keyRef = useRef(key);
+  keyRef.current = key;
+
+  useEffect(() => {
+    const handler = () =>
+      void mutate(keyRef.current, undefined, { revalidate: true });
+    window.addEventListener("focus", handler);
+    return () => window.removeEventListener("focus", handler);
+  }, [mutate]);
 
   return files;
 }

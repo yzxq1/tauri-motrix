@@ -47,11 +47,14 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
   const [parseError, setParseError] = useState(false);
   const [unsupportedTorrent, setUnsupportedTorrent] = useState(false);
   const parseVersion = useRef(0);
+  const clipboardSession = useRef(0);
+  const [focusLink, setFocusLink] = useState(false);
   const {
     control,
     handleSubmit,
     reset,
     setValue,
+    getValues,
     clearErrors,
     watch,
     formState: { errors, isSubmitting },
@@ -77,15 +80,17 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
     setUnsupportedTorrent(false);
   };
   const onClose = () => {
+    clipboardSession.current += 1;
     clearTorrent();
     setFalse();
   };
 
   const onOpen: AddTaskDialogRef["open"] = (initialSource = "url", file) => {
-    // if (isSubmitting) {
-    //   Notice.error(t("tray.TaskSubmitting"));
-    //   return;
-    // }
+    if (isSubmitting) {
+      Notice.error(t("tray.TaskSubmitting"));
+      return;
+    }
+    clipboardSession.current += 1;
     clearTorrent();
     reset({
       link: "",
@@ -103,11 +108,15 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
   useImperativeHandle(props.ref, () => ({
     open: onOpen,
     openFromShortcut: () => {
+      if (open) return;
+      setFocusLink(true);
       onOpen("url");
+      const session = ++clipboardSession.current;
       void readText()
         .then((text) => {
+          if (session !== clipboardSession.current) return;
           const link = clipboardDownloadLink(text);
-          if (link) setValue("link", link);
+          if (link && !getValues("link")) setValue("link", link);
         })
         .catch(() => {});
     },
@@ -181,6 +190,7 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
 
   const submitForm = async (event: FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
     await handleSubmit(onSubmit)(event);
   };
 
@@ -210,6 +220,7 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
           value={source}
           aria-label={t("common.DownloadFile")}
           onChange={(_, value: TaskSource) => {
+            clipboardSession.current += 1;
             clearTorrent();
             clearErrors();
             setSource(value);
@@ -240,6 +251,8 @@ function AddTaskDialog(props: { ref: Ref<AddTaskDialogRef> }) {
                 minRows={2}
                 size="small"
                 error={!!errors.link}
+                autoFocus={focusLink}
+                onFocus={() => setFocusLink(false)}
                 {...field}
               />
             )}

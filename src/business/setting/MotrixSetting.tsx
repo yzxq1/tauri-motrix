@@ -8,7 +8,13 @@ import { DialogRef } from "@/components/BaseDialog";
 import { Notice } from "@/components/Notice";
 import { LOG_LEVELS } from "@/constant/log";
 import { useMotrix } from "@/hooks/motrix";
-import { exitApp, openAppDir, openCoreDir, openLogsDir } from "@/services/cmd";
+import {
+  exitApp,
+  openAppDir,
+  openCoreDir,
+  openLogsDir,
+  testAria2Backend,
+} from "@/services/cmd";
 import { checkForUpdates } from "@/services/updates";
 
 import ListenPortsViewer from "./ListenPortsViewer";
@@ -21,22 +27,67 @@ function MotrixSetting() {
   const [server, setServer] = useState("");
   const [port, setPort] = useState(16801);
   const [secret, setSecret] = useState("");
+  const [backend, setBackend] =
+    useState<MotrixConfig["aria2_backend"]>("embedded");
+  const [scheme, setScheme] = useState<MotrixConfig["aria2_scheme"]>("http");
+  const [path, setPath] = useState("/jsonrpc");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
+  const savedBackend = motrix?.aria2_backend ?? "embedded";
+  const savedScheme = motrix?.aria2_scheme ?? "http";
+  const savedPath = motrix?.aria2_path ?? "/jsonrpc";
+  const savedServer = motrix?.aria2_server ?? "127.0.0.1";
+  const savedPort = motrix?.aria2_port ?? 16801;
+  const savedSecret = motrix?.aria2_secret ?? "";
   useEffect(() => {
-    if (motrix) {
-      setServer(motrix.aria2_server ?? "127.0.0.1");
-      setPort(motrix.aria2_port ?? 16801);
-      setSecret(motrix.aria2_secret ?? "");
-    }
-  }, [motrix]);
+    setBackend(savedBackend);
+    setScheme(savedScheme);
+    setPath(savedPath);
+    setServer(savedServer);
+    setPort(savedPort);
+    setSecret(savedSecret);
+  }, [
+    savedBackend,
+    savedScheme,
+    savedPath,
+    savedServer,
+    savedPort,
+    savedSecret,
+  ]);
 
-  const saveExternalBackend = async () => {
-    await patchMotrix({
-      aria2_server: server.trim(),
-      aria2_port: port,
-      aria2_secret: secret,
-    });
-    Notice.success("aria2 backend saved");
+  const saveExternalBackend = async (testOnly = false) => {
+    if (busy) return;
+    setError("");
+    if (
+      backend === "external" &&
+      (!server.trim() ||
+        !Number.isInteger(port) ||
+        port < 1 ||
+        port > 65535 ||
+        !path.startsWith("/"))
+    ) {
+      setError(t("backend.Invalid"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const data = {
+        aria2_backend: backend,
+        aria2_server: server.trim(),
+        aria2_port: port,
+        aria2_secret: secret,
+        aria2_scheme: scheme,
+        aria2_path: path,
+      };
+      if (testOnly) await testAria2Backend(data);
+      else await patchMotrix(data);
+      Notice.success(t(testOnly ? "backend.Connected" : "common.SaveSuccess"));
+    } catch {
+      setError(t("backend.Failed"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -62,52 +113,80 @@ function MotrixSetting() {
         </Select>
       </SettingItem>
 
-      <SettingItem label="aria2 backend">
-        <Select
-          value={motrix?.aria2_backend ?? "embedded"}
-          size="small"
-          sx={{ width: 180, "> div": { py: "7.5px" } }}
-          onChange={async (e) => {
-            await patchMotrix({
-              aria2_backend: e.target.value as MotrixConfig["aria2_backend"],
-            });
-            Notice.success("aria2 backend switched");
-          }}
-        >
-          <MenuItem value="embedded">Bundled / local</MenuItem>
-          <MenuItem value="external">External RPC</MenuItem>
-        </Select>
+      <SettingItem label={t("backend.Title")}>
+        <Stack spacing={1} sx={{ width: 280, py: 1 }}>
+          <Select
+            disabled={busy}
+            value={backend}
+            size="small"
+            onChange={(e) =>
+              setBackend(e.target.value as MotrixConfig["aria2_backend"])
+            }
+          >
+            <MenuItem value="embedded">{t("backend.Embedded")}</MenuItem>
+            <MenuItem value="external">{t("backend.External")}</MenuItem>
+          </Select>
+          {backend === "external" && (
+            <>
+              <Select
+                disabled={busy}
+                value={scheme}
+                size="small"
+                onChange={(e) =>
+                  setScheme(e.target.value as MotrixConfig["aria2_scheme"])
+                }
+              >
+                <MenuItem value="http">HTTP</MenuItem>
+                <MenuItem value="https">HTTPS</MenuItem>
+              </Select>
+              <TextField
+                disabled={busy}
+                size="small"
+                label={t("backend.Host")}
+                value={server}
+                onChange={(e) => setServer(e.target.value)}
+              />
+              <TextField
+                disabled={busy}
+                size="small"
+                label={t("backend.Port")}
+                type="number"
+                value={port}
+                onChange={(e) => setPort(Number(e.target.value))}
+              />
+              <TextField
+                disabled={busy}
+                size="small"
+                label={t("backend.Path")}
+                value={path}
+                onChange={(e) => setPath(e.target.value)}
+              />
+              <TextField
+                disabled={busy}
+                size="small"
+                label={t("backend.Secret")}
+                type="password"
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+              />
+              <Button
+                disabled={busy}
+                onClick={() => void saveExternalBackend(true)}
+              >
+                {t("backend.Test")}
+              </Button>
+            </>
+          )}
+          {error && <div role="alert">{error}</div>}
+          <Button
+            disabled={busy || !motrix}
+            variant="contained"
+            onClick={() => void saveExternalBackend()}
+          >
+            {t(busy ? "backend.Busy" : "backend.Apply")}
+          </Button>
+        </Stack>
       </SettingItem>
-
-      {motrix?.aria2_backend === "external" && (
-        <SettingItem label="External aria2 RPC">
-          <Stack spacing={1} sx={{ width: 220, py: 1 }}>
-            <TextField
-              size="small"
-              label="Host"
-              value={server}
-              onChange={(e) => setServer(e.target.value)}
-            />
-            <TextField
-              size="small"
-              label="Port"
-              type="number"
-              value={port}
-              onChange={(e) => setPort(Number(e.target.value))}
-            />
-            <TextField
-              size="small"
-              label="Secret"
-              type="password"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-            />
-            <Button size="small" variant="contained" onClick={saveExternalBackend}>
-              Apply and reconnect
-            </Button>
-          </Stack>
-        </SettingItem>
-      )}
 
       <SettingItem label={t("setting.NewTaskShowDownloading")}>
         <Android12Switch

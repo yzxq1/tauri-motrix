@@ -8,6 +8,16 @@ import { create } from "zustand";
 import { Notice } from "@/components/Notice";
 import { APP_LOG_LEVEL } from "@/constant/log";
 import { TASK_STATUS_ENUM } from "@/constant/task";
+import {
+  removeDownloadResultTaskApi,
+  removeTaskApi,
+} from "@/services/aria2c_api";
+import {
+  assertBackendGeneration,
+  backendGeneration,
+  canAccessTaskFiles,
+  isExternalBackend,
+} from "@/services/backend_state";
 import { appLog } from "@/services/cmd";
 import { showDialog } from "@/services/dialog";
 import {
@@ -130,6 +140,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     return tasks.filter((task) => selectedTaskIds.includes(task.gid));
   },
   async fetchTasks() {
+    const generation = backendGeneration();
     const { fetchType, keyword } = get();
 
     let tasks: Array<DownloadTask> = [];
@@ -163,7 +174,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       });
     }
 
-    if (get().fetchType !== fetchType || get().keyword !== keyword) return;
+    if (
+      generation !== backendGeneration() ||
+      get().fetchType !== fetchType ||
+      get().keyword !== keyword
+    )
+      return;
     const previous = new Map(get().tasks.map((task) => [task.gid, task]));
     tasks = tasks.map((task) => {
       const current = previous.get(task.gid);
@@ -175,7 +191,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
   async fetchItem(plat_id) {
     // only aria2c
+    const generation = backendGeneration();
     const newTask = await taskItemApi(plat_id);
+    if (generation !== backendGeneration()) return;
     set({ tasks: get().tasks.map((t) => (t.gid === plat_id ? newTask : t)) });
   },
   async addTask(url, option) {
@@ -248,6 +266,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     await get().fetchTasks();
   },
   async handleTaskDelete(taskId) {
+    const generation = backendGeneration();
     const requested = new Set(taskId ? [taskId] : get().selectedTaskIds);
     const tasks = get().tasks.filter((task) => requested.has(task.gid));
     const taskIds = tasks.map((task) => task.gid);
@@ -299,7 +318,27 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         ],
       });
       if (!decision.action) return;
+      assertBackendGeneration(generation);
       executed = true;
+      if (
+        isExternalBackend() &&
+        tasks.some((task) => !task.gid.startsWith("vortex:"))
+      ) {
+        if (decision.checked) throw new Error(t("backend.RemoteFiles"));
+        for (const task of tasks) {
+          assertBackendGeneration(generation);
+          if (task.gid.startsWith("vortex:")) {
+            applyReport(
+              await deleteTasks([task.ref ?? taskRef(task.gid)], false),
+            );
+          } else if (["complete", "error", "removed"].includes(task.status)) {
+            await removeDownloadResultTaskApi(task.gid);
+          } else {
+            await removeTaskApi(task.gid);
+          }
+        }
+        return;
+      }
       let report = await deleteTasks(
         tasks.map((task) => task.ref ?? taskRef(task.gid)),
         decision.checked,
@@ -367,6 +406,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
   async openTaskFile(taskId) {
     const task = get().getTaskByGid(taskId);
+    if (!task) return;
+    if (!canAccessTaskFiles(task)) {
+      Notice.error(t("backend.RemoteFiles"));
+      return;
+    }
     const path = await getTaskFullPath(task);
 
     await revealItemInDir(path).catch((e) => Notice.error(e));
@@ -494,6 +538,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     });
   },
   async syncToDownloadHistory(task) {
+    if (!canAccessTaskFiles(task)) return;
     const taskName = getTaskName(task, "unknown_history", 64);
     const link = getTaskUri(task);
     const path = await getTaskFullPath(task);

@@ -23,8 +23,28 @@ export const openCoreDir = () => invoke<void>("open_core_dir");
 
 export const exitApp = () => invoke<void>("exit_app");
 
-export const patchMotrixConfig = (data: Partial<MotrixConfig>) =>
-  invoke<null>("patch_motrix_config", { data });
+export const testAria2Backend = (data: Partial<MotrixConfig>) =>
+  invoke<void>("test_aria2_backend", { data });
+
+export const patchMotrixConfig = async (data: Partial<MotrixConfig>) => {
+  const apply = () => invoke<null>("patch_motrix_config", { data });
+  if (
+    Object.keys(data).some((key) =>
+      [
+        "aria2_backend",
+        "aria2_server",
+        "aria2_port",
+        "aria2_secret",
+        "aria2_scheme",
+        "aria2_path",
+      ].includes(key),
+    )
+  ) {
+    const { withBackendReconnect } = await import("@/services/backend_switch");
+    return withBackendReconnect(apply);
+  }
+  return apply();
+};
 
 export const patchAria2Config = (data: Partial<Aria2Config>) =>
   invoke<null>("patch_aria2_config", { data });

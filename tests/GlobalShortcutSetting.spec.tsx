@@ -15,6 +15,10 @@ import {
   setGlobalShortcutRecording,
 } from "@/services/shortcuts";
 
+jest.mock("@/constant/environment", () => ({
+  ...jest.requireActual("@/constant/environment"),
+  isMac: false,
+}));
 jest.mock("@/services/cmd", () => ({
   getMotrixConfig: jest.fn(),
   patchMotrixConfig: jest.fn(),

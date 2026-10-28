@@ -1,4 +1,6 @@
 import { act, fireEvent, renderHook, waitFor } from "@testing-library/react";
+import { PropsWithChildren } from "react";
+import { SWRConfig } from "swr";
 
 import { useHistoryFiles } from "@/hooks/history_files";
 import type { DownloadHistoryVO } from "@/services/download_history";
@@ -19,11 +21,21 @@ const present: HistoryFileInspection = {
   revision: "1:100",
 };
 
+function wrapper({ children }: PropsWithChildren) {
+  return (
+    <SWRConfig value={{ focusThrottleInterval: 0, provider: () => new Map() }}>
+      {children}
+    </SWRConfig>
+  );
+}
+
 beforeEach(() => jest.clearAllMocks());
 
 it("refreshes missing and restored files when the window regains focus", async () => {
   jest.mocked(inspectHistoryPaths).mockResolvedValue([present]);
-  const { result, unmount } = renderHook(() => useHistoryFiles(history));
+  const { result, unmount } = renderHook(() => useHistoryFiles(history), {
+    wrapper,
+  });
   await waitFor(() =>
     expect(result.current.get(present.path)?.state).toBe("present"),
   );
@@ -54,7 +66,7 @@ it("ignores an older inspection that finishes after a newer refresh", async () =
       }),
     )
     .mockResolvedValue([present]);
-  const { result } = renderHook(() => useHistoryFiles(history));
+  const { result } = renderHook(() => useHistoryFiles(history), { wrapper });
   fireEvent.focus(window);
   await waitFor(() =>
     expect(result.current.get(present.path)?.state).toBe("present"),
@@ -67,7 +79,7 @@ it("reports inspection failures as unknown rather than missing", async () => {
   jest
     .mocked(inspectHistoryPaths)
     .mockRejectedValue(new Error("Access denied"));
-  const { result } = renderHook(() => useHistoryFiles(history));
+  const { result } = renderHook(() => useHistoryFiles(history), { wrapper });
   await waitFor(() =>
     expect(result.current.get(present.path)?.state).toBe("unknown"),
   );
@@ -83,7 +95,7 @@ it("deduplicates paths and keeps native inspection batches bounded", async () =>
     path: `C:\\Downloads\\${id}`,
   })) as DownloadHistoryVO[];
   const duplicates = [...items, ...items];
-  const { result } = renderHook(() => useHistoryFiles(duplicates));
+  const { result } = renderHook(() => useHistoryFiles(duplicates), { wrapper });
   await waitFor(() => expect(result.current.size).toBe(260));
   expect(
     jest.mocked(inspectHistoryPaths).mock.calls.map(([paths]) => paths.length),

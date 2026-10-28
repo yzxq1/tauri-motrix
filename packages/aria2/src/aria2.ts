@@ -30,6 +30,8 @@ export type OfflineSubscribeMap = Record<
 
 export interface Aria2InstanceConfig {
   server: string;
+  httpUrl?: string;
+  wsUrl?: string;
   timeout: number;
   eventSubscribeMap?: EventSubscribeMap;
   offlineSubscribeMap?: OfflineSubscribeMap;
@@ -61,7 +63,8 @@ export class Aria2 {
     } = instanceConfig;
 
     this.fetcher = createFetcherFactory(
-      `${isHttps ? "https" : "http"}://${server}/jsonrpc`,
+      instanceConfig.httpUrl ??
+        `${isHttps ? "https" : "http"}://${server}/jsonrpc`,
       timeout,
     );
 
@@ -74,7 +77,8 @@ export class Aria2 {
   open() {
     const { server, isWss } = this.instanceConfig;
     const webSocketIns = new WebSocket(
-      `${isWss ? "wss" : "ws"}://${server}/jsonrpc`,
+      this.instanceConfig.wsUrl ??
+        `${isWss ? "wss" : "ws"}://${server}/jsonrpc`,
     );
     this.webSocketIns = webSocketIns;
 

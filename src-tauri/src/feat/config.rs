@@ -56,6 +56,23 @@ pub async fn patch_motrix(mut data: IMotrix) -> Result<()> {
         || data.aria2_scheme.is_some()
         || data.aria2_path.is_some();
     if backend_changed {
+        let patch = serde_json::to_value(&data)?;
+        if patch.as_object().is_some_and(|fields| {
+            fields.iter().any(|(key, value)| {
+                !value.is_null()
+                    && !matches!(
+                        key.as_str(),
+                        "aria2_backend"
+                            | "aria2_server"
+                            | "aria2_port"
+                            | "aria2_secret"
+                            | "aria2_scheme"
+                            | "aria2_path"
+                    )
+            })
+        }) {
+            anyhow::bail!("Save backend settings separately from other application settings");
+        }
         let _aria2 = ARIA2_CONFIG_UPDATE.lock().await;
         let mut next = Config::motrix().data().clone();
         next.patch_config(data.clone());

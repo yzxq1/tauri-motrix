@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 import { DOWNLOAD_ENGINE } from "@/constant/task";
 import * as aria2 from "@/services/aria2c_api";
+import { isExternalBackend } from "@/services/backend_state";
 import { getAria2Config, getMotrixConfig } from "@/services/cmd";
 import { buildMagnetLink } from "@/utils/task";
 
@@ -21,6 +22,7 @@ export interface TaskRef {
 // Retain the existing presentation fields while adapters own native engine data.
 export interface DownloadTask extends aria2.Aria2Task {
   ref?: TaskRef;
+  remote?: boolean;
   revision?: number;
   phase?: VortexSnapshot["state"];
   totalKnown?: boolean;
@@ -99,6 +101,7 @@ export function fromVortex(task: VortexSnapshot): DownloadTask {
 }
 const fromAria2 = (task: aria2.Aria2Task): DownloadTask => ({
   ...task,
+  remote: isExternalBackend(),
   ref: { engine: DOWNLOAD_ENGINE.Aria2, id: task.gid },
   capabilities: { selectFiles: !!task.bittorrent, peers: !!task.bittorrent },
 });
@@ -144,6 +147,7 @@ export async function addTaskApi(
   const config = await getMotrixConfig();
   const list = typeof urls === "string" ? [urls] : urls;
   if (
+    config?.aria2_backend === "external" ||
     config?.http_engine !== "vortex" ||
     !list.every((url) => /^https?:\/\//i.test(url))
   )

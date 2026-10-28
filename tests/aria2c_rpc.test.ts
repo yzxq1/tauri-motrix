@@ -116,15 +116,12 @@ describe("Aria2 api", () => {
   });
 });
 
-it("reconnects with updated settings and preserves download notifications", async () => {
+it("reconnects with updated settings", async () => {
   const socket = { onmessage: null, close: jest.fn() } as unknown as WebSocket;
   const websocket = jest
     .spyOn(globalThis, "WebSocket")
     .mockImplementation(() => socket);
   try {
-    const previous = await getAria2();
-    const notification = jest.fn();
-    previous.addListener("onDownloadComplete", notification);
     mockIPC((command) =>
       command === "get_aria2_info"
         ? {
@@ -139,13 +136,37 @@ it("reconnects with updated settings and preserves download notifications", asyn
       server: "127.0.0.1:6800",
       secret: "updated-secret",
     });
+    updated.close();
+  } finally {
+    websocket.mockRestore();
+  }
+});
+
+it("isolates stale-generation listeners after reconnect", async () => {
+  const socket = { onmessage: null, close: jest.fn() } as unknown as WebSocket;
+  const websocket = jest
+    .spyOn(globalThis, "WebSocket")
+    .mockImplementation(() => socket);
+  try {
+    const previous = await getAria2();
+    const stale = jest.fn();
+    previous.addListener("onDownloadComplete", stale);
+    mockIPC((command) =>
+      command === "get_aria2_info"
+        ? { port: 6800, server: "127.0.0.1:6800", secret: "updated-secret" }
+        : undefined,
+    );
+    const updated = await getAria2(true);
+    const fresh = jest.fn();
+    updated.addListener("onDownloadComplete", fresh);
     socket.onmessage?.({
       data: JSON.stringify({
         method: "aria2.onDownloadComplete",
         params: [{ gid: "task" }],
       }),
     } as MessageEvent);
-    expect(notification).toHaveBeenCalledWith([{ gid: "task" }]);
+    expect(stale).not.toHaveBeenCalled();
+    expect(fresh).toHaveBeenCalledWith([{ gid: "task" }]);
     updated.close();
   } finally {
     websocket.mockRestore();

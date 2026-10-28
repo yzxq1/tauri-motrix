@@ -268,5 +268,22 @@
     "starting": "Preparing shortcut recording…",
     "saving": "Saving shortcut…",
     "stopping": "Restoring global shortcut actions…"
+  },
+  "backend": {
+    "Title": "aria2 backend",
+    "Embedded": "Bundled / local",
+    "External": "External RPC",
+    "Host": "Host (IPv4, IPv6 or DNS)",
+    "Port": "Port",
+    "Path": "RPC path",
+    "Secret": "RPC secret",
+    "Test": "Test connection",
+    "Apply": "Apply and reconnect",
+    "Busy": "Connecting…",
+    "Connected": "Connection successful",
+    "Invalid": "Check the host, port and RPC path.",
+    "Failed": "Connection failed. Check endpoint, TLS and credentials. Previous settings are retained if applying fails.",
+    "RemoteFiles": "Remote files cannot be opened or deleted on this computer.",
+    "ManualUpdate": "This fork requires manual updates. Upstream automatic updates are disabled."
   }
 }

@@ -1,7 +1,9 @@
 import type { Config } from "jest";
+import { dirname } from "path";
 import { join } from "path";
+import { fileURLToPath } from "url";
 
-// const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const watchPathIgnorePatterns = [
   "[/\\\\]node_modules[/\\\\]\\.cache(?:[/\\\\]|$)",

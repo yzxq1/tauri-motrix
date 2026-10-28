@@ -1,4 +1,7 @@
 interface Aria2Info {
+  http_url: string;
+  ws_url: string;
+  external: boolean;
   port: number;
   server: string;
   secret: string;
@@ -148,6 +151,8 @@ interface MotrixConfig {
   aria2_server: string;
   aria2_port: number;
   aria2_secret: string;
+  aria2_scheme: "http" | "https";
+  aria2_path: string;
   http_engine: "aria2c" | "vortex";
   vortex_max_tasks: number;
   vortex_connections: number;
