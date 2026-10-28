@@ -59,7 +59,7 @@ impl CoreManager {
             self.ensure_port_available().await?;
             self.run_core_by_sidecar(&config_path).await?;
         }
-        let info = Config::aria2().data().get_client_info();
+        let info = crate::config::backend::current()?;
         if let Err(error) = Self::wait_for_rpc(&info).await {
             let _ = self.kill_core_by_sidecar().await;
             return Err(error);
@@ -81,10 +81,52 @@ impl CoreManager {
         *running = false;
     }
 
-    /// Reconnect after switching between the bundled and external backends.
-    pub async fn reconfigure_backend(&self) -> Result<()> {
-        self.stop_engine().await;
-        self.start_engine().await
+    pub async fn reconfigure_backend(&self, next: &crate::config::IMotrix) -> Result<()> {
+        let mut running = self.running.lock().await;
+        let previous = Config::motrix().data().clone();
+        let local = Config::aria2().data().clone();
+        let old = crate::config::backend::resolve(&previous, &local)?;
+        let target = crate::config::backend::resolve(next, &local)?;
+        if target.external && self.aria2c_sidecar.lock().await.is_some() {
+            let url = reqwest::Url::parse(&target.http_url)?;
+            let points_to_local =
+                matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
+            if points_to_local && target.port == local.get_client_info().port {
+                anyhow::bail!("The bundled aria2 cannot be selected as an external backend; use a separately managed service");
+            }
+        }
+        let started_local = !target.external && self.aria2c_sidecar.lock().await.is_none();
+        if started_local {
+            self.ensure_port_available().await?;
+            self.run_core_by_sidecar(&aria2_path()?).await?;
+        }
+        let result: Result<()> = async {
+            Self::wait_for_rpc(&target).await?;
+            if !old.external && *running && target.external {
+                crate::service::aria2c::call_with_info(&old, "saveSession", &[]).await?;
+            }
+            next.save_file()?;
+            if !old.external && target.external {
+                self.kill_core_by_sidecar().await?;
+            }
+            Ok(())
+        }
+        .await;
+        if let Err(error) = result {
+            if started_local {
+                let _ = self.kill_core_by_sidecar().await;
+            }
+            previous.save_file()?;
+            if !old.external && *running && self.aria2c_sidecar.lock().await.is_none() {
+                self.run_core_by_sidecar(&aria2_path()?).await?;
+                Self::wait_for_rpc(&old).await?;
+            }
+            return Err(error);
+        }
+        *Config::motrix().draft() = next.clone();
+        Config::motrix().apply();
+        *running = true;
+        Ok(())
     }
 
     /// Save unfinished tasks and restart only the managed aria2 process.

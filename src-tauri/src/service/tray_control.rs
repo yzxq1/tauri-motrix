@@ -218,6 +218,7 @@ async fn run_with(action: ControlAction, backend: &impl Backend) -> ControlRepor
 }
 
 pub async fn run(action: ControlAction) -> ControlReport {
+    let _backend = crate::feat::config::MOTRIX_CONFIG_UPDATE.lock().await;
     run_with(action, &SystemBackend).await
 }
 

@@ -37,17 +37,6 @@ pub async fn patch_motrix(mut data: IMotrix) -> Result<()> {
         .as_deref()
         .is_some_and(|e| !matches!(e, "embedded" | "external"))
         || data
-            .aria2_server
-            .as_deref()
-            .is_some_and(|server| server.is_empty() || server.contains([':', '/', '\\', ' ']))
-        || data
-            .aria2_port
-            .is_some_and(|port| !(1..=65535).contains(&port))
-        || data
-            .aria2_secret
-            .as_deref()
-            .is_some_and(|secret| secret.contains(['\r', '\n', '\0']))
-        || data
             .http_engine
             .as_deref()
             .is_some_and(|e| !matches!(e, "aria2c" | "vortex"))
@@ -60,12 +49,23 @@ pub async fn patch_motrix(mut data: IMotrix) -> Result<()> {
     {
         anyhow::bail!("Invalid download engine configuration");
     }
-    Config::motrix().draft().patch_config(data.clone());
-
     let backend_changed = data.aria2_backend.is_some()
         || data.aria2_server.is_some()
         || data.aria2_port.is_some()
-        || data.aria2_secret.is_some();
+        || data.aria2_secret.is_some()
+        || data.aria2_scheme.is_some()
+        || data.aria2_path.is_some();
+    if backend_changed {
+        let _aria2 = ARIA2_CONFIG_UPDATE.lock().await;
+        let mut next = Config::motrix().data().clone();
+        next.patch_config(data.clone());
+        crate::core::CoreManager::global()
+            .reconfigure_backend(&next)
+            .await?;
+        let _ = feat::run_upnp_mapping();
+        return Ok(());
+    }
+    Config::motrix().draft().patch_config(data.clone());
     let language = data.language;
     let auto_launch = data.enable_auto_launch;
     let enable_upnp = data.enable_upnp;
@@ -111,9 +111,6 @@ pub async fn patch_motrix(mut data: IMotrix) -> Result<()> {
     match res {
         Ok(()) => {
             Config::motrix().apply();
-            if backend_changed {
-                crate::core::CoreManager::global().reconfigure_backend().await?;
-            }
             if upnp_changed {
                 if let Err(error) = feat::run_upnp_mapping() {
                     log::error!(target: "app", "Failed to submit UPnP configuration: {error}");
@@ -129,7 +126,11 @@ pub async fn patch_motrix(mut data: IMotrix) -> Result<()> {
 }
 
 pub async fn patch_aria2(data: HashMap<String, String>) -> Result<()> {
+    let _motrix = MOTRIX_CONFIG_UPDATE.lock().await;
     let _update = ARIA2_CONFIG_UPDATE.lock().await;
+    if crate::config::backend::is_external(&Config::motrix().data()) {
+        anyhow::bail!("Local aria2 settings are unavailable for an external backend");
+    }
     if data.contains_key("rpc-listen-port") || data.contains_key("rpc-secret") {
         anyhow::bail!("Use RPC settings to change the RPC port or secret");
     }
@@ -160,14 +161,7 @@ pub async fn patch_aria2(data: HashMap<String, String>) -> Result<()> {
 pub async fn patch_aria2_rpc(port: u16, secret: String) -> Result<Aria2Info> {
     let _update = ARIA2_CONFIG_UPDATE.lock().await;
     if Config::motrix().data().aria2_backend.as_deref() == Some("external") {
-        let mut motrix = Config::motrix().data().clone();
-        motrix.aria2_port = Some(port);
-        motrix.aria2_secret = Some(secret);
-        motrix.save_file()?;
-        *Config::motrix().draft() = motrix;
-        Config::motrix().apply();
-        crate::core::CoreManager::global().reconfigure_backend().await?;
-        return Ok(Config::aria2().data().get_client_info());
+        anyhow::bail!("Use backend settings to update external RPC credentials");
     }
 
     let mut config = Config::aria2().data().clone();

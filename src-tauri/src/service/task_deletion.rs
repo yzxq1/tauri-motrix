@@ -207,6 +207,12 @@ pub async fn delete_tasks(
     tasks: Vec<TaskRef>,
     delete_files: bool,
 ) -> Result<DeletionReport, String> {
+    let _backend = crate::feat::config::MOTRIX_CONFIG_UPDATE.lock().await;
+    if crate::config::backend::is_external(&crate::config::Config::motrix().data())
+        && tasks.iter().any(|task| task.engine == EngineKind::Aria2c)
+    {
+        return Err("Remote tasks must be removed without local file operations".into());
+    }
     let mut state = STATE.lock().await;
     delete_with(&mut state, tasks, delete_files, SystemBackend).await
 }
@@ -331,6 +337,10 @@ async fn delete_with(
 }
 
 pub async fn resolve(token: String, action: Resolution) -> Result<DeletionReport, String> {
+    let _backend = crate::feat::config::MOTRIX_CONFIG_UPDATE.lock().await;
+    if crate::config::backend::is_external(&crate::config::Config::motrix().data()) {
+        return Err("Local deletion recovery is unavailable while using external RPC".into());
+    }
     let mut state = STATE.lock().await;
     resolve_with(&mut state, token, action, SystemBackend).await
 }

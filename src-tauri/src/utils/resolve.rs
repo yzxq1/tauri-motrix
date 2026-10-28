@@ -43,7 +43,7 @@ pub async fn resolve_setup(app_handle: &AppHandle) {
     let resume_all_when_app_launched = motrix.auto_resume_all;
     let resume_all_when_app_launched = resume_all_when_app_launched.unwrap_or(false);
 
-    if resume_all_when_app_launched {
+    if resume_all_when_app_launched && !crate::config::backend::is_external(&motrix) {
         let _ = aria2c::unpause_all().await;
     }
     log_err!(run_upnp_mapping());

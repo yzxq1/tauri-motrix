@@ -14,6 +14,9 @@ enum ManagerState {
 static MANAGER: Mutex<ManagerState> = Mutex::new(ManagerState::Idle);
 
 pub fn create_upnp_mappings(motrix: &IMotrix) -> Result<Vec<Mapping>> {
+    if crate::config::backend::is_external(motrix) {
+        return Ok(Vec::new());
+    }
     let bt_port = motrix
         .bt_listen_port
         .context("bt_listen_port is required")?;
@@ -93,6 +96,16 @@ mod tests {
             dht_listen_port: Some(26701),
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn external_backend_never_maps_local_ports() {
+        let config = IMotrix {
+            aria2_backend: Some("external".into()),
+            enable_upnp: Some(true),
+            ..Default::default()
+        };
+        assert!(create_upnp_mappings(&config).unwrap().is_empty());
     }
 
     #[test]

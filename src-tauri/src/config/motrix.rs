@@ -9,7 +9,7 @@ use crate::{
     utils::{dirs, help, logging::Type},
 };
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 pub struct IMotrix {
     /// aria2c run name for sidecar
     pub aria2_engine: Option<String>,
@@ -18,6 +18,8 @@ pub struct IMotrix {
     pub aria2_server: Option<String>,
     pub aria2_port: Option<u16>,
     pub aria2_secret: Option<String>,
+    pub aria2_scheme: Option<String>,
+    pub aria2_path: Option<String>,
     pub http_engine: Option<String>,
     pub vortex_max_tasks: Option<usize>,
     pub vortex_connections: Option<usize>,
@@ -58,6 +60,14 @@ pub struct IMotrix {
     pub bt_listen_port: Option<u16>,
     pub dht_listen_port: Option<u16>,
     pub enable_upnp: Option<bool>,
+}
+
+impl std::fmt::Debug for IMotrix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IMotrix")
+            .field("aria2_backend", &self.aria2_backend)
+            .finish_non_exhaustive()
+    }
 }
 
 impl IMotrix {
@@ -173,6 +183,8 @@ impl IMotrix {
         patch!(aria2_server);
         patch!(aria2_port);
         patch!(aria2_secret);
+        patch!(aria2_scheme);
+        patch!(aria2_path);
         patch!(http_engine);
         patch!(vortex_max_tasks);
         patch!(vortex_connections);

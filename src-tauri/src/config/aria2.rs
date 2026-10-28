@@ -3,12 +3,9 @@ use std::{collections::HashMap, fmt, fs::read_to_string};
 use anyhow::{bail, Result};
 use serde::Serialize;
 
-use crate::{
-    config::Config,
-    utils::{
-        dirs::{self, aria2_download_session_path, aria2_path, path_to_str, user_downloads_dir},
-        help::simple_save_file,
-    },
+use crate::utils::{
+    dirs::{self, aria2_download_session_path, aria2_path, path_to_str, user_downloads_dir},
+    help::simple_save_file,
 };
 
 #[derive(Debug, Default, Clone, Serialize)]
@@ -108,25 +105,14 @@ impl IAria2Temp {
     }
 
     pub fn get_client_info(&self) -> Aria2Info {
-        let motrix = Config::motrix().data();
-        if motrix.aria2_backend.as_deref() == Some("external") {
-            let server = motrix
-                .aria2_server
-                .clone()
-                .unwrap_or_else(|| "127.0.0.1".into());
-            let port = motrix.aria2_port.unwrap_or(16801);
-            return Aria2Info {
-                port,
-                server: format!("{}:{}", server, port),
-                secret: motrix.aria2_secret.clone().unwrap_or_default(),
-            };
-        }
-
         let config = &self.0;
         Aria2Info {
             port: Self::guard_port(config),
             server: Self::guard_server(config),
             secret: config.get("rpc-secret").cloned().unwrap_or_default(),
+            http_url: format!("http://{}/jsonrpc", Self::guard_server(config)),
+            ws_url: format!("ws://{}/jsonrpc", Self::guard_server(config)),
+            external: false,
         }
     }
 
@@ -173,6 +159,9 @@ pub struct Aria2Info {
     pub port: u16,
     pub server: String,
     pub secret: String,
+    pub http_url: String,
+    pub ws_url: String,
+    pub external: bool,
 }
 
 #[cfg(test)]
@@ -194,6 +183,9 @@ mod tests {
             Aria2Info {
                 port: 2239,
                 server: "127.0.0.1:2239".into(),
+                http_url: "http://127.0.0.1:2239/jsonrpc".into(),
+                ws_url: "ws://127.0.0.1:2239/jsonrpc".into(),
+                external: false,
                 secret: String::new(),
             }
         );
@@ -218,6 +210,9 @@ mod tests {
             Aria2Info {
                 port: 6800,
                 server: "127.0.0.1:6800".into(),
+                http_url: "http://127.0.0.1:6800/jsonrpc".into(),
+                ws_url: "ws://127.0.0.1:6800/jsonrpc".into(),
+                external: false,
                 secret: "secret=with=equals".into(),
             }
         );

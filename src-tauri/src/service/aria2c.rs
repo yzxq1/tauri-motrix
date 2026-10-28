@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde_json::{json, Value};
 
 use crate::{
-    config::{Aria2Info, Config},
+    config::{backend, Aria2Info},
     logging,
     utils::logging::Type,
 };
@@ -16,7 +16,7 @@ pub fn ensure_prefix(name: &str) -> String {
 }
 
 pub async fn call(name: &str, data: &[Value]) -> Result<Value> {
-    let info = Config::aria2().data().get_client_info();
+    let info = backend::current()?;
     call_with_info(&info, name, data).await
 }
 
@@ -30,8 +30,9 @@ fn rpc_params(name: &str, data: &[Value], secret: &str) -> Vec<Value> {
 }
 
 pub async fn call_with_info(info: &Aria2Info, name: &str, data: &[Value]) -> Result<Value> {
-    let url = format!("http://{}/jsonrpc", info.server);
+    let url = &info.http_url;
     let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
         .timeout(std::time::Duration::from_secs(2))
         .build()?;
 
@@ -47,35 +48,30 @@ pub async fn call_with_info(info: &Aria2Info, name: &str, data: &[Value]) -> Res
     logging!(info, Type::Engine, true, "aria2c call: {}", name);
 
     let res = client
-        .post(&url)
+        .post(url)
         .header("Content-Type", "application/json")
         .body(json_rpc_message.to_string())
         .send()
         .await
-        .map_err(|e| {
-            logging!(error, Type::Engine, true, "aria2c call error: {}", e);
-            e
-        })?
+        .map_err(|_| anyhow::anyhow!("Unable to connect to aria2 RPC"))?
+        .error_for_status()
+        .map_err(|_| anyhow::anyhow!("aria2 RPC returned an HTTP error"))?
         .json::<Value>()
-        .await?;
+        .await
+        .map_err(|_| anyhow::anyhow!("Invalid aria2 RPC response"))?;
 
     logging!(info, Type::Engine, true, "aria2c call completed: {}", name);
 
     if res.get("error").is_some() {
-        let error = res.get("error").unwrap();
-        let code = error.get("code").unwrap().as_i64().unwrap();
-        let message = error.get("message").unwrap().as_str().unwrap();
-        logging!(
-            error,
-            Type::Engine,
-            true,
-            "aria2c call error: {} {}",
-            code,
-            message
-        );
-        return Err(anyhow::anyhow!("aria2c call error: {} {}", code, message));
+        anyhow::bail!("aria2 RPC rejected the request");
     }
 
+    if res.get("result").is_none() {
+        anyhow::bail!("Invalid aria2 RPC response");
+    }
+    if name == "getVersion" && res["result"]["version"].as_str().is_none() {
+        anyhow::bail!("Invalid aria2 version response");
+    }
     Ok(res)
 }
 
