@@ -400,6 +400,7 @@ fn desktop_capabilities_cover_every_registered_application_command() {
     let permissions = [
         include_str!("../../../permissions/task-deletion.toml"),
         include_str!("../../../permissions/tray.toml"),
+        include_str!("../../../permissions/history-files.toml"),
     ]
     .join("\n");
     let capability: Value =
@@ -409,6 +410,7 @@ fn desktop_capabilities_cover_every_registered_application_command() {
         "allow-desktop-commands",
         "allow-tray-actions",
         "allow-global-shortcuts",
+        "allow-history-files",
     ] {
         assert!(
             capability["permissions"]
