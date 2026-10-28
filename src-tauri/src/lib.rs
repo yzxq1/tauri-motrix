@@ -94,7 +94,10 @@ pub fn run() {
             cmd::stop_engine,
             cmd::read_file_as_base64,
             cmd::inspect_history_paths,
-            cmd::get_history_thumbnail
+            cmd::get_history_thumbnail,
+            cmd::get_motrix_profiles,
+            cmd::save_motrix_profiles,
+            cmd::switch_motrix_profile
         ]);
 
     let app = builder

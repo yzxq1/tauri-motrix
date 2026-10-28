@@ -9,6 +9,28 @@ use crate::{
     utils::{dirs, help, logging::Type},
 };
 
+/// A single external aria2 RPC profile.
+#[derive(Default, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IMotrixProfile {
+    /// Unique identifier; the built-in sidecar always uses "embedded".
+    pub id: String,
+    /// Human-readable display name.
+    pub name: String,
+    pub host: String,
+    pub port: u16,
+    pub secret: String,
+    pub scheme: String,
+    pub path: String,
+}
+
+impl std::fmt::Debug for IMotrixProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IMotrixProfile")
+            .field("id", &self.id)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct IMotrix {
     /// aria2c run name for sidecar
@@ -20,6 +42,11 @@ pub struct IMotrix {
     pub aria2_secret: Option<String>,
     pub aria2_scheme: Option<String>,
     pub aria2_path: Option<String>,
+    /// Saved external RPC profiles.  The built-in sidecar is always available
+    /// under the synthetic id "embedded" and is not stored in this list.
+    pub aria2_profiles: Option<Vec<IMotrixProfile>>,
+    /// The id of the currently-active profile.  "embedded" selects the sidecar.
+    pub aria2_active_profile_id: Option<String>,
     pub http_engine: Option<String>,
     pub vortex_max_tasks: Option<usize>,
     pub vortex_connections: Option<usize>,
@@ -185,6 +212,12 @@ impl IMotrix {
         patch!(aria2_secret);
         patch!(aria2_scheme);
         patch!(aria2_path);
+        if patch.aria2_profiles.is_some() {
+            self.aria2_profiles = patch.aria2_profiles;
+        }
+        if patch.aria2_active_profile_id.is_some() {
+            self.aria2_active_profile_id = patch.aria2_active_profile_id;
+        }
         patch!(http_engine);
         patch!(vortex_max_tasks);
         patch!(vortex_connections);

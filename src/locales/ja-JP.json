@@ -269,6 +269,23 @@
     "saving": "ショートカットを保存中…",
     "stopping": "グローバルショートカットを復元中…"
   },
+  "profiles": {
+    "Active": "アクティブなプロファイル",
+    "ActiveTag": "使用中",
+    "New": "新規",
+    "Edit": "編集",
+    "Delete": "削除",
+    "Apply": "切り替え",
+    "Name": "プロファイル名",
+    "NameRequired": "プロファイル名は必須です",
+    "SaveProfile": "プロファイルを保存",
+    "Saved": "プロファイルを保存しました",
+    "Applied": "選択したプロファイルに切り替えました",
+    "Deleted": "プロファイルを削除しました",
+    "CannotDeleteActive": "先に別のプロファイルに切り替えてから削除してください",
+    "CannotEditActive": "別のプロファイルに切り替えてからアクティブなプロファイルを編集してください",
+    "EmbeddedHint": "内蔵 aria2 はローカルで実行されています。RPC 設定でポートとシークレットを変更できます。"
+  },
   "backend": {
     "Title": "aria2 backend",
     "Embedded": "Bundled / local",

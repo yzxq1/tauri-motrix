@@ -269,6 +269,23 @@
     "saving": "Saving shortcut…",
     "stopping": "Restoring global shortcut actions…"
   },
+  "profiles": {
+    "Active": "Active profile",
+    "ActiveTag": "active",
+    "New": "New",
+    "Edit": "Edit",
+    "Delete": "Delete",
+    "Apply": "Apply",
+    "Name": "Profile name",
+    "NameRequired": "Profile name is required",
+    "SaveProfile": "Save profile",
+    "Saved": "Profile saved",
+    "Applied": "Switched to selected profile",
+    "Deleted": "Profile deleted",
+    "CannotDeleteActive": "Switch away from this profile before deleting it",
+    "CannotEditActive": "Switch to a different profile before editing the active one",
+    "EmbeddedHint": "The built-in aria2 runs locally. Use RPC Settings to change its port and secret."
+  },
   "backend": {
     "Title": "aria2 backend",
     "Embedded": "Bundled / local",

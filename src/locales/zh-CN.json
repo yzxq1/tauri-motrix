@@ -269,6 +269,23 @@
     "saving": "正在保存快捷键…",
     "stopping": "正在恢复全局快捷键操作…"
   },
+  "profiles": {
+    "Active": "当前激活节点",
+    "ActiveTag": "激活中",
+    "New": "新增",
+    "Edit": "编辑",
+    "Delete": "删除",
+    "Apply": "切换应用",
+    "Name": "配置名称",
+    "NameRequired": "配置名称不能为空",
+    "SaveProfile": "保存配置",
+    "Saved": "配置已保存",
+    "Applied": "已切换到所选节点",
+    "Deleted": "配置已删除",
+    "CannotDeleteActive": "请先切换到其他节点再删除此配置",
+    "CannotEditActive": "请先切换到其他节点再编辑当前活跃节点",
+    "EmbeddedHint": "内置 aria2 本地运行，在 RPC 设置中可修改端口和密钥。"
+  },
   "backend": {
     "Title": "aria2 后端",
     "Embedded": "内置 / 本地",

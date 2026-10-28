@@ -145,9 +145,21 @@ interface Aria2Config {
   "no-proxy"?: string;
 }
 
+interface Aria2Profile {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  secret: string;
+  scheme: "http" | "https";
+  path: string;
+}
+
 interface MotrixConfig {
   aria2_engine: string;
   aria2_backend: "embedded" | "external";
+  aria2_profiles: Aria2Profile[];
+  aria2_active_profile_id: string;
   aria2_server: string;
   aria2_port: number;
   aria2_secret: string;

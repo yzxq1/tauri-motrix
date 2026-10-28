@@ -62,3 +62,12 @@ export const stopEngine = () => invoke("stop_engine");
 
 export const readFileAsBase64 = (path: string) =>
   invoke<string>("read_file_as_base64", { path });
+
+export const getMotrixProfiles = () =>
+  invoke<Aria2Profile[]>("get_motrix_profiles");
+
+export const saveMotrixProfiles = (profiles: Aria2Profile[]) =>
+  invoke<Aria2Profile[]>("save_motrix_profiles", { profiles });
+
+export const switchMotrixProfile = (profileId: string) =>
+  invoke<void>("switch_motrix_profile", { profileId });

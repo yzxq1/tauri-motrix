@@ -1,7 +1,7 @@
 use anyhow::Result;
 use once_cell::sync::OnceCell;
 
-use super::{motrix::IMotrix, Draft, IAria2Temp};
+use super::{motrix::IMotrix, profiles, Draft, IAria2Temp};
 
 pub struct Config {
     motrix_config: Draft<IMotrix>,
@@ -12,9 +12,14 @@ impl Config {
     pub fn global() -> &'static Config {
         static CONFIG: OnceCell<Config> = OnceCell::new();
 
-        CONFIG.get_or_init(|| Config {
-            motrix_config: Draft::from(IMotrix::new()),
-            aria2_config: Draft::from(IAria2Temp::new()),
+        CONFIG.get_or_init(|| {
+            let mut motrix = IMotrix::new();
+            // One-time migration: lift legacy flat external config into profiles.
+            profiles::migrate_legacy_external(&mut motrix);
+            Config {
+                motrix_config: Draft::from(motrix),
+                aria2_config: Draft::from(IAria2Temp::new()),
+            }
         })
     }
 

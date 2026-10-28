@@ -269,6 +269,23 @@
     "saving": "正在儲存快捷鍵…",
     "stopping": "正在恢復全域快捷鍵操作…"
   },
+  "profiles": {
+    "Active": "目前啟用節點",
+    "ActiveTag": "啟用中",
+    "New": "新增",
+    "Edit": "編輯",
+    "Delete": "刪除",
+    "Apply": "切換應用",
+    "Name": "設定檔名稱",
+    "NameRequired": "設定檔名稱不得為空",
+    "SaveProfile": "儲存設定檔",
+    "Saved": "設定檔已儲存",
+    "Applied": "已切換至所選節點",
+    "Deleted": "設定檔已刪除",
+    "CannotDeleteActive": "請先切換至其他節點再刪除此設定檔",
+    "CannotEditActive": "請先切換至其他節點再編輯目前啟用中的節點",
+    "EmbeddedHint": "內建 aria2 在本機執行，可在 RPC 設定中修改連接埠和密鑰。"
+  },
   "backend": {
     "Title": "aria2 backend",
     "Embedded": "Bundled / local",
