@@ -25,6 +25,9 @@ jobs:
       - run: pnpm check aarch64-apple-darwin
       - run: cargo test --locked -p tauri-motrix --lib
   macos:
+    needs: native
+    permissions:
+      contents: write
     runs-on: macos-15
     timeout-minutes: 45
     env:
@@ -60,3 +63,15 @@ jobs:
           name: tauri-motrix-backend-macos-arm64
           path: target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error
+      - name: Publish backend preview
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd target/aarch64-apple-darwin/release/bundle/dmg
+          shasum -a 256 *.dmg > SHA256SUMS.txt
+          tag=backend-preview-0.2.5-1
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Preview tag already exists; refusing to overwrite published assets.'
+            exit 1
+          fi
+          gh release create "$tag" *.dmg SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --latest=false --title 'Tauri Motrix 0.2.5 Backend Preview 1' --notes-file "$GITHUB_WORKSPACE/docs/external-backend.md"
