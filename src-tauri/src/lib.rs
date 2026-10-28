@@ -102,6 +102,14 @@ pub fn run() {
         .expect("error while running tauri application");
 
     app.run(|_app_handle, e| match e {
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen { .. } => {
+            if !core::handle::Handle::global().is_exiting()
+                && core::handle::Handle::global().app_handle().is_some()
+            {
+                create_window(true);
+            }
+        }
         tauri::RunEvent::ExitRequested { api, code, .. } => {
             if code.is_none() {
                 api.prevent_exit();
