@@ -1,5 +1,9 @@
 # tauri-motrix
 
+## External RPC fork
+
+This fork adds switching between bundled aria2 and an independently managed external aria2 service. See the [backend guide](docs/external-backend.md) for connection settings, ownership rules and remote-file limitations. Fork builds use manual updates rather than the upstream auto-updater. The original project and license are retained below.
+
 [![Feature Requests](https://img.shields.io/github/issues/taoister39/tauri-motrix/feature-request.svg)](https://github.com/taoister39/tauri-motrix/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
 [![Bugs](https://img.shields.io/github/issues/taoister39/tauri-motrix/bug.svg)](https://github.com/taoister39/tauri-motrix/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Abug)
 

@@ -7,7 +7,7 @@ commands.allow = ["delete_tasks", "resolve_task_deletion"]
 identifier = "allow-desktop-commands"
 description = "Preserves access to existing desktop application commands."
 commands.allow = [
-  "get_aria2_info", "vortex_add", "vortex_list", "vortex_get", "vortex_control",
+  "get_aria2_info", "test_aria2_backend", "vortex_add", "vortex_list", "vortex_get", "vortex_control",
   "get_aria2_config", "get_motrix_config", "open_logs_dir", "open_app_dir",
   "open_core_dir", "patch_motrix_config", "exit_app", "patch_aria2_config",
   "patch_aria2_rpc", "get_auto_launch_status", "app_log", "stop_engine",

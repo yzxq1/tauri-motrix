@@ -19,7 +19,7 @@ jobs:
           cache-on-failure: true
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - uses: pnpm/action-setup@v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm check aarch64-apple-darwin
@@ -39,15 +39,15 @@ jobs:
           cache-on-failure: true
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
       - uses: pnpm/action-setup@v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm check aarch64-apple-darwin
       - run: pnpm build
       - run: pnpm exec tsc --noEmit
-      - run: pnpm test -- --runInBand
+      - run: pnpm exec jest --runInBand
       - name: Build ARM64 DMG without updater signing
-        run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: pnpm tauri build --target aarch64-apple-darwin --bundles dmg --config '{"version":"0.2.5-backend.1","bundle":{"createUpdaterArtifacts":false}}'
       - uses: actions/upload-artifact@v4
         with:
           name: tauri-motrix-backend-macos-arm64
