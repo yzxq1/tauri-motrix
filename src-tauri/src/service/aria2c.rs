@@ -88,6 +88,63 @@ mod tests {
     use super::rpc_params;
     use serde_json::json;
 
+    #[tokio::test]
+    async fn backend_probe_authenticates_and_rejects_invalid_servers() {
+        use std::io::{Read, Write};
+        for (body, succeeds) in [
+            (r#"{"jsonrpc":"2.0","result":{"version":"1.37.0"}}"#, true),
+            (
+                r#"{"jsonrpc":"2.0","error":{"code":1,"message":"Unauthorized"}}"#,
+                false,
+            ),
+            (r#"{"jsonrpc":"2.0","result":"OK"}"#, false),
+            ("<html>Login</html>", false),
+        ] {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let port = listener.local_addr().unwrap().port();
+            let server = std::thread::spawn(move || {
+                let (mut stream, _) = listener.accept().unwrap();
+                stream
+                    .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+                    .unwrap();
+                let mut bytes = Vec::new();
+                loop {
+                    let mut buf = [0; 4096];
+                    let count = stream.read(&mut buf).unwrap();
+                    assert!(count > 0);
+                    bytes.extend_from_slice(&buf[..count]);
+                    let text = String::from_utf8_lossy(&bytes);
+                    if let Some((headers, content)) = text.split_once("\r\n\r\n") {
+                        let length: usize = headers
+                            .lines()
+                            .find_map(|line| {
+                                let (key, value) = line.split_once(':')?;
+                                key.eq_ignore_ascii_case("content-length")
+                                    .then(|| value.trim().parse().unwrap())
+                            })
+                            .unwrap();
+                        if content.len() >= length {
+                            break;
+                        }
+                    }
+                }
+                assert!(String::from_utf8_lossy(&bytes).contains("token:fixture-secret"));
+                write!(
+                    stream,
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                )
+                .unwrap();
+            });
+            let mut local = crate::config::IAria2Temp::default();
+            local.patch_rpc(port, "fixture-secret".into()).unwrap();
+            let result = super::call_with_info(&local.get_client_info(), "getVersion", &[]).await;
+            server.join().unwrap();
+            assert_eq!(result.is_ok(), succeeds);
+        }
+    }
+
     #[test]
     fn rpc_authentication_params() {
         let options = json!({"dir": "Downloads"});

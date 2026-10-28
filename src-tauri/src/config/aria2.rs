@@ -154,7 +154,7 @@ impl fmt::Display for IAria2Temp {
 }
 
 // expose to web
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, PartialEq, Eq)]
 pub struct Aria2Info {
     pub port: u16,
     pub server: String,
@@ -162,6 +162,15 @@ pub struct Aria2Info {
     pub http_url: String,
     pub ws_url: String,
     pub external: bool,
+}
+
+impl fmt::Debug for Aria2Info {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Aria2Info")
+            .field("external", &self.external)
+            .field("port", &self.port)
+            .finish_non_exhaustive()
+    }
 }
 
 #[cfg(test)]
