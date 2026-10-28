@@ -1,8 +1,22 @@
 # tauri-motrix
 
-## External RPC fork
+## yzxq1 Fork Changes — Multiple aria2 RPC Backends
 
-This fork adds switching between bundled aria2 and an independently managed external aria2 service. See the [backend guide](docs/external-backend.md) for connection settings, ownership rules and remote-file limitations. Fork builds use manual updates rather than the upstream auto-updater. The original project and license are retained below.
+This public fork adds a tabbed aria2 RPC backend manager. The RPC Settings dialog keeps the bundled local aria2 backend and lets you add, name, edit, test, delete, and switch between multiple external aria2 RPC profiles. Switching is explicit and reconnects the client only after the target endpoint passes validation and an RPC probe.
+
+Key fork features:
+
+- Built-in local aria2 plus multiple saved external RPC profiles.
+- HTTP/HTTPS, IPv6, custom RPC paths, and RPC secrets.
+- Separate profile saving and backend switching, with failure rollback.
+- Stale request/event isolation when switching backends.
+- Remote-task protection: no local file opening, deletion, or local history writes.
+- macOS Dock reopen restores the hidden or minimized main window.
+- Upstream automatic updates disabled so fork builds are not silently replaced.
+
+See the [backend guide](docs/external-backend.md) for setup, ownership rules, and remote-file limitations. The original project and license are retained below.
+
+> The section above documents the changes made in the `yzxq1` fork. The documentation below is retained from the upstream project.
 
 [![Feature Requests](https://img.shields.io/github/issues/taoister39/tauri-motrix/feature-request.svg)](https://github.com/taoister39/tauri-motrix/issues?q=is%3Aopen+is%3Aissue+label%3Afeature-request+sort%3Areactions-%2B1-desc)
 [![Bugs](https://img.shields.io/github/issues/taoister39/tauri-motrix/bug.svg)](https://github.com/taoister39/tauri-motrix/issues?utf8=✓&q=is%3Aissue+is%3Aopen+label%3Abug)
